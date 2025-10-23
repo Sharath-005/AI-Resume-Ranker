@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Ranker</title>
+    <!-- Basic Styling for a professional look -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px M40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        textarea, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #dcdfe6;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 150px;
+            resize: vertical;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #a9cce3;
+            cursor: not-allowed;
+        }
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px solid #e4e7ed;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            text-align: left;
+            display: none; /* Hidden by default */
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>AI Resume Ranker 🚀</h1>
+        <p style="margin-bottom: 30px; color: #555;">Paste a job description and upload a resume to see the match score.</p>
+        
+        <form id="ranker-form">
+            <textarea id="job-description" placeholder="Paste the full job description here..." required></textarea>
+            <input type="file" id="resume-file" accept=".pdf,.docx,.txt" required>
+            <button type="submit">Rank Resume</button>
+        </form>
+
+        <div id="spinner" class="spinner"></div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const rankerForm = document.getElementById('ranker-form');
+        const resultsDiv = document.getElementById('results');
+        const spinner = document.getElementById('spinner');
+        const submitButton = rankerForm.querySelector('button');
+
+        rankerForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const jobDescription = document.getElementById('job-description').value;
+            const resumeFile = document.getElementById('resume-file').files[0];
+
+            if (!jobDescription || !resumeFile) {
+                // Using a custom modal/alert in the results div instead of window.alert
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `<p style="color: orange;"><strong>Please provide both a job description and a resume file.</strong></p>`;
+                return;
+            }
+
+            spinner.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            resultsDiv.innerHTML = '';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Analyzing...';
+
+            const formData = new FormData();
+            formData.append('job_description', jobDescription);
+            formData.append('resume', resumeFile);
+
+            try {
+                // The URL is constructed dynamically to ensure it works in any environment.
+                const apiUrl = `${window.location.origin}/rank`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                resultsDiv.style.display = 'block';
+                if (response.ok) {
+                    const semanticScore = (result.semantic_score * 100).toFixed(1);
+                    const keywordScore = (result.keyword_overlap_score * 100).toFixed(1);
+                    
+                    const matchedKeywordsHtml = result.matched_keywords.length > 0
+                        ? `<li><strong>Matched Keywords:</strong> ${result.matched_keywords.join(', ')}</li>`
+                        : '<li><strong>Matched Keywords:</strong> None found.</li>';
+
+                    resultsDiv.innerHTML = `
+                        <h3>Analysis Complete ✨</h3>
+                        <ul>
+                            <li><strong>File:</strong> ${result.filename}</li>
+                            <li><strong>Semantic Match Score:</strong> ${semanticScore}%</li>
+                            <li><strong>Keyword Overlap Score:</strong> ${keywordScore}%</li>
+                            ${matchedKeywordsHtml}
+                        </ul>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<p style="color: red;"><strong>Error:</strong> ${result.error || 'An unknown error occurred.'}</p>`;
+                }
+
+            } catch (error) {
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = `<p style="color: red;"><strong>Network Error:</strong> Could not connect to the API. Please ensure the Python server is running and fully loaded.</p>`;
+                console.error('Error:', error);
+            } finally {
+                spinner.style.display = 'none';
+                submitButton.disabled = false;
+                submitButton.textContent = 'Rank Resume';
+            }
+        });
+    </script>
+
+</body>
+</html>
+
