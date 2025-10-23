@@ -1,0 +1,22 @@
+# Python cache and compiled files
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+env/
+
+# Uploaded files
+uploads/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# OS-specific junk
+.DS_Store
+Thumbs.db
+
+# VSCode and editor configs
+.vscode/
+.idea/
